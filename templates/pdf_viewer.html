@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center">
+            <a href="{{ url_for('index') }}" class="text-blue-500 hover:text-blue-600 mr-4">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-lg font-medium">{{ libro.titulo }}</h1>
+        </div>
+        <a href="{{ url_for('obtener_pdf', id=libro.id) }}" 
+           class="text-blue-500 hover:text-blue-600"
+           download="{{ libro.titulo }}.pdf">
+            <i class="fas fa-download"></i>
+        </a>
+    </header>
+
+    <!-- PDF Viewer -->
+    <div class="flex-1">
+        <iframe src="{{ url_for('obtener_pdf', id=libro.id) }}"
+                class="w-full h-full"
+                type="application/pdf">
+        </iframe>
+    </div>
+</div>
+
+<!-- PDF.js viewer alternativo para navegadores que no soporten visualización de PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
+<script>
+    // Si el iframe no funciona, usar PDF.js como fallback
+    const iframe = document.querySelector('iframe');
+    iframe.onload = function() {
+        if (iframe.contentDocument && iframe.contentDocument.body.childNodes.length === 0) {
+            // Configurar PDF.js
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.worker.min.js';
+            
+            const url = iframe.src;
+            const container = document.createElement('div');
+            container.style.width = '100%';
+            container.style.height = '100%';
+            iframe.parentNode.replaceChild(container, iframe);
+
+            // Cargar y mostrar el PDF
+            pdfjsLib.getDocument(url).promise.then(function(pdf) {
+                for(let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    pdf.getPage(pageNum).then(function(page) {
+                        const canvas = document.createElement('canvas');
+                        container.appendChild(canvas);
+                        
+                        const viewport = page.getViewport({scale: 1.5});
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        
+                        page.render({
+                            canvasContext: canvas.getContext('2d'),
+                            viewport: viewport
+                        });
+                    });
+                }
+            });
+        }
+    };
+</script>
+{% endblock %}
